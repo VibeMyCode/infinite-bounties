@@ -343,12 +343,13 @@ impl BountyBoardService {
     pub fn set_fee(&mut self, new_fee: u128) -> Result<(), &'static str> {
         self.ensure_admin()?;
         let mut state = self.state.borrow_mut();
-        let old_fee = state.fee;
         state.fee = new_fee;
         drop(state);
 
-        self.emit_event(Event::FeeUpdated { old_fee, new_fee })
-            .expect("emit");
+        let _ = self.emit_event(Event::FeeUpdated {
+            old_fee: 0,
+            new_fee,
+        });
 
         Ok(())
     }
@@ -371,11 +372,10 @@ impl BountyBoardService {
 
         msg::send_with_gas(admin, (), 0, balance).expect("send fees failed");
 
-        self.emit_event(Event::FeesWithdrawn {
+        let _ = self.emit_event(Event::FeesWithdrawn {
             amount: balance,
             to: admin,
-        })
-        .expect("emit");
+        });
 
         Ok(())
     }
