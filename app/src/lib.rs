@@ -106,8 +106,8 @@ pub enum Event {
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
-pub struct BountyBoardService {
-    state: RefCell<State>,
+pub struct BountyBoardService<'a> {
+    state: &'a RefCell<State>,
 }
 
 #[derive(Encode, Decode, TypeInfo)]
@@ -117,8 +117,8 @@ pub struct BountyPage {
     pub bounties: Vec<Bounty>,
 }
 
-impl BountyBoardService {
-    pub(crate) fn new(state: RefCell<State>) -> Self {
+impl<'a> BountyBoardService<'a> {
+    pub(crate) fn new(state: &'a RefCell<State>) -> Self {
         Self { state }
     }
 
@@ -141,7 +141,7 @@ impl BountyBoardService {
 }
 
 #[service(events = Event)]
-impl BountyBoardService {
+impl BountyBoardService<'_> {
     // ─── Commands ──────────────────────────────────────────────────────────
 
     /// Post a new bounty. Requires msg::value() >= fee + reward.
@@ -191,14 +191,13 @@ impl BountyBoardService {
         state.next_bounty_id += 1;
         drop(state);
 
-        self.emit_event(Event::BountyPosted {
+        let _ = self.emit_event(Event::BountyPosted {
             id: next_id,
             creator: caller,
             description,
             reward,
             fee_paid: fee,
-        })
-        .expect("emit");
+        });
 
         Ok(next_id)
     }
@@ -224,11 +223,10 @@ impl BountyBoardService {
         bounty.claimant = Some(caller);
         drop(state);
 
-        self.emit_event(Event::BountyClaimed {
+        let _ = self.emit_event(Event::BountyClaimed {
             id: bounty_id,
             claimant: caller,
-        })
-        .expect("emit");
+        });
 
         Ok(())
     }
@@ -258,11 +256,10 @@ impl BountyBoardService {
         bounty.proof_url = Some(proof_url.clone());
         drop(state);
 
-        self.emit_event(Event::WorkSubmitted {
+        let _ = self.emit_event(Event::WorkSubmitted {
             id: bounty_id,
             proof_url,
-        })
-        .expect("emit");
+        });
 
         Ok(())
     }
@@ -292,13 +289,12 @@ impl BountyBoardService {
         msg::send_with_gas(claimant, (), 0, reward).expect("send reward failed");
         drop(state);
 
-        self.emit_event(Event::BountyApproved {
+        let _ = self.emit_event(Event::BountyApproved {
             id: bounty_id,
             reward,
             creator: caller,
             claimant,
-        })
-        .expect("emit");
+        });
 
         Ok(())
     }
@@ -327,11 +323,10 @@ impl BountyBoardService {
         msg::send_with_gas(caller, (), 0, reward).expect("send refund failed");
         drop(state);
 
-        self.emit_event(Event::BountyCancelled {
+        let _ = self.emit_event(Event::BountyCancelled {
             id: bounty_id,
             reward_returned: reward,
-        })
-        .expect("emit");
+        });
 
         Ok(())
     }
@@ -500,7 +495,7 @@ impl Program {
         }
     }
 
-    pub fn bounty_board(&self) -> BountyBoardService {
-        BountyBoardService::new(self.state.clone())
+    pub fn bounty_board(&self) -> BountyBoardService<'_> {
+        BountyBoardService::new(&self.state)
     }
 }

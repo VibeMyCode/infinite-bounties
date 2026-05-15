@@ -15,6 +15,7 @@ infinite-bounties-app.workspace = true
 sails-rs.workspace = true
 
 [dev-dependencies]
+hex = "0.4.3"
 infinite-bounties-app.workspace = true
 infinite-bounties-client.workspace = true
 sails-rs = { workspace = true, features = ["gtest", "gclient"] }
